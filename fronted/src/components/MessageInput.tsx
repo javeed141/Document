@@ -24,7 +24,7 @@ export default function MessageInput({ chatId, onSendMessage }: any) {
   };
 
   return (
-    <div className="border-t p-4 bg-background">
+    <div className="border-t p-3 md:p-4 bg-background">
       <div className="flex space-x-2">
         <Textarea
           value={text}

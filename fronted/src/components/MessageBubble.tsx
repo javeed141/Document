@@ -15,7 +15,7 @@ export default function MessageBubble({ message }: any) {
         </Avatar>
       )}
       <div
-        className={`max-w-xl px-4 py-3 rounded-lg text-sm leading-relaxed
+        className={`max-w-xs md:max-w-xl px-3 py-2 md:px-4 md:py-3 rounded-lg text-sm leading-relaxed
           ${
             isUser
               ? "bg-primary text-primary-foreground"

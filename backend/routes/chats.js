@@ -62,6 +62,7 @@ router.get("/:chatId", authMiddleware, async (req, res) => {
 
   res.json({ chat, messages });
 });
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /* SEND MESSAGE */
 router.post("/:chatId/messages", authMiddleware, async (req, res) => {
@@ -82,13 +83,16 @@ router.post("/:chatId/messages", authMiddleware, async (req, res) => {
   }
 
   // Save user message
-  const userMessage = await Message.create({
+  await Message.create({
     chatId,
     role: "user",
     content,
   });
 
-  // 👉 MOCK AI RESPONSE (replace later with OpenAI)
+  // ⏳ Artificial delay (1.5 seconds)
+  await delay(2500);
+
+  // 🤖 Mock AI response
   const aiMessage = await Message.create({
     chatId,
     role: "assistant",
@@ -99,6 +103,53 @@ router.post("/:chatId/messages", authMiddleware, async (req, res) => {
   await chat.save();
 
   res.status(201).json(aiMessage);
+});
+
+/* UPDATE CHAT TITLE */
+router.put("/:chatId", authMiddleware, async (req, res) => {
+  const { chatId } = req.params;
+  const { title } = req.body;
+
+  if (!title || !title.trim()) {
+    return res.status(400).json({ message: "Title is required" });
+  }
+
+  const chat = await Chat.findOne({
+    _id: chatId,
+    userId: req.user.userId,
+  });
+
+  if (!chat) {
+    return res.status(404).json({ message: "Chat not found" });
+  }
+
+  chat.title = title.trim();
+  chat.updatedAt = new Date();
+  await chat.save();
+
+  res.json(chat);
+});
+
+/* DELETE CHAT */
+router.delete("/:chatId", authMiddleware, async (req, res) => {
+  const { chatId } = req.params;
+
+  const chat = await Chat.findOne({
+    _id: chatId,
+    userId: req.user.userId,
+  });
+
+  if (!chat) {
+    return res.status(404).json({ message: "Chat not found" });
+  }
+
+  // Delete all messages in the chat
+  await Message.deleteMany({ chatId });
+
+  // Delete the chat
+  await Chat.findByIdAndDelete(chatId);
+
+  res.status(204).send();
 });
 
 module.exports = router;
