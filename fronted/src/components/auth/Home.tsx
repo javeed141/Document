@@ -17,7 +17,6 @@ const Home: React.FC = () => {
     const { theme, toggleTheme } = useTheme();
   const [user, setUser] = useState<User | null>(null);
   const [error, setError] = useState("");
-  const[submit,setSubmit]=useState(false)
 
   useEffect(() => {
     const token = localStorage.getItem("token");

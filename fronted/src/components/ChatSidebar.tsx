@@ -845,7 +845,7 @@ export default function ChatSidebar({
           scrollbarColor: 'hsl(var(--muted-foreground) / 0.3) transparent'
         }}
       >
-        <style jsx>{`
+        <style>{`
           div::-webkit-scrollbar {
             width: 6px;
           }

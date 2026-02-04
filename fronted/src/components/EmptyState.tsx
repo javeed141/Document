@@ -1,5 +1,3 @@
-import { Loader2 } from "lucide-react";
-
 export default function LoadingState() {
   return (
     <div className="flex-1 flex items-center justify-center bg-gradient-to-b from-background to-muted/20">

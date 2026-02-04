@@ -39,7 +39,7 @@ const Register: React.FC = () => {
   setError(null) // reset previous error
 
   try {
-    const res = await axios.post(
+    await axios.post(
       `${api}/api/auth/register`,
       {
         name,

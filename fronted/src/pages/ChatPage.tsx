@@ -8,7 +8,7 @@ import EmptyState from "@/components/EmptyState";
 import MessageList from "@/components/MessageList";
 import MessageInput from "@/components/MessageInput";
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, Menu, X } from "lucide-react";
+import { Moon, Sun, Menu } from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
 import { useNavigate } from "react-router-dom";
 
