@@ -50,7 +50,7 @@ const Login: React.FC = () => {
         email,
         password,
       })
-
+console.log(res)
       setEmail("")
       setPassword("")
       localStorage.setItem("token", res.data.token)
