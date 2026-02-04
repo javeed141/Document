@@ -1,3 +1,144 @@
+// import { useState,useRef, useEffect } from "react";
+// import axios from "axios";
+// import { api } from "../api/api";
+
+// import ChatSidebar from "@/components/ChatSidebar";
+// import EmptyState from "@/components/EmptyState";
+// import MessageList from "@/components/MessageList";
+// import MessageInput from "@/components/MessageInput";
+// import { Button } from "@/components/ui/button";
+// import { Moon, Sun, Menu } from "lucide-react";
+// import { useTheme } from "@/context/ThemeContext";
+
+// export default function ChatPage() {
+//   const [activeChat, setActiveChat] = useState<any>(null);
+//   const [messages, setMessages] = useState<any[]>([]);
+//   const [loading, setLoading] = useState(false);
+//   const [isResponding, setIsResponding] = useState(false);
+//   const [sidebarOpen, setSidebarOpen] = useState(false);
+//   const[userDetails,setUserDetails]=useState<any>(null);
+
+
+
+//   useEffect(()=>{
+//       const user = localStorage.getItem("user");
+//       if(!user) return ;
+//       setUserDetails( JSON.parse(user));
+//   },[])
+
+//   const { theme, toggleTheme } = useTheme();
+// const sidebarRef = useRef<{ createNewChat: () => void } | null>(null);
+
+//   /* Load messages */
+//   const loadChat = async (chat: any) => {
+//     setActiveChat(chat);
+//     setLoading(true);
+
+//     const res = await axios.get(`${api}/api/chats/${chat._id}`, {
+//       headers: { authorization: localStorage.getItem("token") },
+//     });
+
+//     setMessages(res.data.messages);
+//     setLoading(false);
+//   };
+
+//   return (
+//     <div className="flex h-screen bg-background text-foreground">
+//       {sidebarOpen && (
+//         <div
+//           className="fixed inset-0 bg-black/50 md:hidden"
+//           onClick={() => setSidebarOpen(false)}
+//         />
+//       )}
+
+//       {/* Sidebar */}
+//       <div
+//         className={`absolute inset-y-0 left-0 z-50 w-64 transform transition-transform md:relative md:translate-x-0 ${
+//           sidebarOpen ? "translate-x-0" : "-translate-x-full"
+//         }`}
+//       >
+//        <ChatSidebar
+//   ref={sidebarRef}
+//   activeChat={activeChat}
+//   onSelect={(chat) => {
+//     loadChat(chat);
+//     setSidebarOpen(false);
+//   }}
+
+// />
+
+//       </div>
+
+//       {/* Main */}
+//       <div className="flex flex-col flex-1 md:ml-64">
+//         {!activeChat ? (
+//         <EmptyState
+//   onNewChat={() => {
+//     sidebarRef.current?.createNewChat();
+//   }}
+// />
+
+//         ) : (
+//           <>
+//             <header className="border-b sticky top-0 bg-background z-30">
+//               <div className="flex h-14 items-center px-4">
+//                 <Button
+//                   variant="ghost"
+//                   size="sm"
+//                   className="md:hidden mr-2"
+//                   onClick={() => setSidebarOpen(true)}
+//                 >
+//                   <Menu />
+//                 </Button>
+
+//                 <h1 className="flex-1 font-semibold truncate">
+//                   {activeChat.title}
+//                 </h1>
+
+//                 <Button variant="ghost" size="sm" onClick={toggleTheme}>
+//                   {theme === "light" ? <Moon /> : <Sun />}
+//                 </Button>
+//               </div>
+//             </header>
+
+//             <MessageList
+//               messages={messages}
+//               loading={loading}
+//               isResponding={isResponding}
+//             />
+
+//             <MessageInput
+//               chatId={activeChat._id}
+//               onSendMessage={async (content) => {
+//                 const userMessage = {
+//                   _id: Date.now().toString(),
+//                   role: "user",
+//                   content,
+//                 };
+
+//                 setMessages((p) => [...p, userMessage]);
+//                 setIsResponding(true);
+
+//                 const res = await axios.post(
+//                   `${api}/api/chats/${activeChat._id}/messages`,
+//                   { content },
+//                   {
+//                     headers: {
+//                       authorization: localStorage.getItem("token"),
+//                     },
+//                   }
+//                 );
+
+//                 setMessages((p) => [...p, res.data]);
+//                 setIsResponding(false);
+//               }}
+//             />
+//           </>
+//         )}
+//       </div>
+//     </div>
+//   );
+// }
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { api } from "../api/api";
@@ -11,142 +152,93 @@ import { Moon, Sun, Menu } from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
 
 export default function ChatPage() {
-  const [chats, setChats] = useState<any[]>([]);
   const [activeChat, setActiveChat] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [isResponding, setIsResponding] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [chatsLoading, setChatsLoading] = useState(true);
+
   const { theme, toggleTheme } = useTheme();
 
-  // 🔹 Load chats
-  useEffect(() => {
-    const fetchChats = async () => {
-      try {
-        setChatsLoading(true);
-        const res = await axios.get(`${api}/api/chats`, {
-          headers: {
-            authorization: localStorage.getItem("token"),
-          },
-        });
-        setChats(res.data);
-      } catch (error) {
-        console.error("Failed to load chats", error);
-      } finally {
-        setChatsLoading(false);
-      }
-    };
 
-    fetchChats();
-  }, []);
 
-  // 🔹 Load messages for a chat
+
+
+  /* Load messages */
   const loadChat = async (chat: any) => {
-    try {
-      setActiveChat(chat);
-      setLoading(true);
+    setActiveChat(chat);
+      localStorage.setItem("activeChatId", chat?._id);
+console.log(chat)
+    setLoading(true);
 
-      const res = await axios.get(
-        `${api}/api/chats/${chat._id}`,
-        {
-          headers: {
-            authorization: localStorage.getItem("token"),
-          },
-        }
-      );
+    const res = await axios.get(`${api}/api/chats/${chat._id}`, {
+      headers: { authorization: localStorage.getItem("token") },
+    });
 
-      setMessages(res.data.messages);
-    } catch (error) {
-      console.error("Failed to load messages", error);
-    } finally {
-      setLoading(false);
-    }
+    setMessages(res.data.messages);
+    setLoading(false);
   };
 
-  // 🔹 Create new chat
-  const createNewChat = async () => {
-    try {
-      const timestamp = new Date().toLocaleString();
-      const title = `New Chat ${timestamp}`;
-      const res = await axios.post(
-        `${api}/api/chats`,
-        { title },
-        {
-          headers: {
-            authorization: localStorage.getItem("token"),
-          },
-        }
-      );
-      const newChat = res.data;
-      setChats((prev) => [newChat, ...prev]);
-      loadChat(newChat);
-    } catch (error) {
-      console.error("Failed to create new chat", error);
-    }
-  };
+useEffect(() => {
+  const savedChatId = localStorage.getItem("activeChatId");
 
-  // 🔹 Update chat
-  const updateChat = (updatedChat: any) => {
-    setChats((prev) =>
-      prev.map((chat) =>
-        chat._id === updatedChat._id ? updatedChat : chat
-      )
+  if (savedChatId) {
+    setActiveChat(savedChatId);
+    // fetchMessages(savedChatId); // IMPORTANT
+  }
+}, []);
+
+  /* Create new chat */
+  const handleCreateNewChat = async () => {
+    const title = `New Chat ${new Date().toLocaleString()}`;
+
+    const res = await axios.post(
+      `${api}/api/chats`,
+      { title },
+      {
+        headers: {
+          authorization: localStorage.getItem("token"),
+        },
+      }
     );
-    if (activeChat?._id === updatedChat._id) {
-      setActiveChat(updatedChat);
-    }
-  };
 
-  // 🔹 Delete chat
-  const deleteChat = (chatId: string) => {
-    setChats((prev) => prev.filter((chat) => chat._id !== chatId));
-    if (activeChat?._id === chatId) {
-      setActiveChat(null);
-      setMessages([]);
-    }
+    const newChat = res.data;
+    loadChat(newChat);
+    setSidebarOpen(false);
   };
 
   return (
     <div className="flex h-screen bg-background text-foreground">
-      {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          className="fixed inset-0 bg-black/50 md:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <div
-        className={`absolute inset-y-0 left-0 z-50 w-64 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${
+        className={`absolute inset-y-0 left-0 z-50 w-64 transform transition-transform md:relative md:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <ChatSidebar
-          chats={chats}
           activeChat={activeChat}
-          onSelect={(chat: any) => {
+          onSelect={(chat) => {
             loadChat(chat);
             setSidebarOpen(false);
           }}
-          onNewChat={createNewChat}
-          onUpdateChat={updateChat}
-          onDeleteChat={deleteChat}
-          loading={chatsLoading}
+          onCreateNewChat={handleCreateNewChat}
         />
       </div>
 
-      {/* Main content */}
-      <div className="flex flex-col flex-1 min-w-0 md:ml-64 md:border-l">
+      {/* Main */}
+      <div className="flex flex-col flex-1 md:ml-64">
         {!activeChat ? (
-          <EmptyState 
-           onNewChat={createNewChat}
-          />
+          <EmptyState onNewChat={handleCreateNewChat} />
         ) : (
           <>
-            {/* Header */}
-            <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-30">
+            <header className="border-b sticky top-0 bg-background z-30">
               <div className="flex h-14 items-center px-4">
                 <Button
                   variant="ghost"
@@ -154,64 +246,53 @@ export default function ChatPage() {
                   className="md:hidden mr-2"
                   onClick={() => setSidebarOpen(true)}
                 >
-                  <Menu className="h-5 w-5" />
+                  <Menu />
                 </Button>
-                <div className="flex-1">
-                  <h1 className="text-lg font-semibold truncate">
-                    {activeChat.title}
-                  </h1>
-                </div>
+
+                <h1 className="flex-1 font-semibold truncate">
+                  {activeChat.title}
+                </h1>
+
                 <Button variant="ghost" size="sm" onClick={toggleTheme}>
-                  {theme === "light" ? (
-                    <Moon className="h-5 w-5" />
-                  ) : (
-                    <Sun className="h-5 w-5" />
-                  )}
+                  {theme === "light" ? <Moon /> : <Sun />}
                 </Button>
               </div>
             </header>
-          <MessageList
-  messages={messages}
-  loading={loading}
-  isResponding={isResponding}
-/>
 
-<MessageInput
-  chatId={activeChat._id}
-  onSendMessage={async (content: string) => {
-    const userMessage = {
-      _id: Date.now().toString(),
-      role: "user",
-      content,
-      createdAt: new Date().toISOString(),
-    };
+            <MessageList
+              messages={messages}
+              loading={loading}
+              isResponding={isResponding}
+            />
 
-    setMessages((prev) => [...prev, userMessage]);
-    setIsResponding(true);
+            <MessageInput
+              chatId={activeChat._id}
+              onSendMessage={async (content) => {
+                const userMessage = {
+                  _id: Date.now().toString(),
+                  role: "user",
+                  content,
+                };
 
-    try {
-      const res = await axios.post(
-        `${api}/api/chats/${activeChat._id}/messages`,
-        { content },
-        {
-          headers: {
-            authorization: localStorage.getItem("token"),
-          },
-        }
-      );
+                setMessages((p) => [...p, userMessage]);
+                setIsResponding(true);
 
-      setMessages((prev) => [...prev, res.data]);
-    } catch (error) {
-      console.error("Failed to send message", error);
-      setMessages((prev) =>
-        prev.filter((msg) => msg._id !== userMessage._id)
-      );
-    } finally {
-      setIsResponding(false);
-    }
-  }}
-/>
+                const res = await axios.post(
+                  `${api}/api/chats/${activeChat._id}/messages`,
+                  { content },
+                  {
+                    headers: {
+                      authorization: localStorage.getItem("token"),
+                    },
+                  }
 
+                  
+                );
+
+                setMessages((p) => [...p, res.data]);
+                setIsResponding(false);
+              }}
+            />
           </>
         )}
       </div>

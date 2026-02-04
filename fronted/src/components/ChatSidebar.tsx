@@ -1,306 +1,359 @@
-import { useState, useCallback } from "react";
+
+import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { api } from "@/api/api";
 
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
 
-import {
-  Plus,
-  Edit,
-  Trash2,
-  Loader2,
-  Search,
-} from "lucide-react";
+import { Plus, Edit, Trash2, User, LogOut } from "lucide-react";
+import { Spinner } from "./ui/spinner";
 
-type Props = {
-  chats: any[];
+const LIMIT = 20;
+
+type ChatSidebarProps = {
   activeChat: any;
   onSelect: (chat: any) => void;
-  onNewChat: () => void;
-  onUpdateChat: (chat: any) => void;
-  onDeleteChat: (id: string) => void;
-  onLoadMore: () => Promise<void>;
-  hasMore: boolean;
-  loading: boolean;
+  onCreateNewChat: () => void;
 };
 
 export default function ChatSidebar({
-  chats,
   activeChat,
   onSelect,
-  onNewChat,
-  onUpdateChat,
-  onDeleteChat,
-  onLoadMore,
-  hasMore,
-  loading,
-}: Props) {
+  onCreateNewChat,
+}: ChatSidebarProps) {
+  const [chats, setChats] = useState<any[]>([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loading, setLoading] = useState(false);
+
   const [editingChat, setEditingChat] = useState<any>(null);
   const [deletingChat, setDeletingChat] = useState<any>(null);
   const [editTitle, setEditTitle] = useState("");
-  const [isUpdating, setIsUpdating] = useState(false);
+  const [showAccount, setShowAccount] = useState(false);
+  const [isEditLoading, setIsEditLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const[userDetails,setUserDetails]=useState<any>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  
+   useEffect(()=>{
+      const user = localStorage.getItem("user");
+      if(!user) return ;
+      const userObj= JSON.parse(localStorage.getItem("user")||"");
+      setUserDetails( userObj);
+      console.log(userObj)
+  },[])
 
-  // 🔹 Filter chats
-  const filteredChats = chats.filter((chat) =>
-    chat.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  /* ===================== FETCH CHATS ===================== */
+  const fetchChats = async (pageNum: number) => {
+    if (loading || !hasMore) return;
 
-  // 🔹 Detect recent chats (last 48h)
-  const isRecentChat = (chat: any) => {
-    const chatDate = new Date(chat.updatedAt || chat.createdAt);
-    const diff =
-      (Date.now() - chatDate.getTime()) /
-      (1000 * 60 * 60 * 24);
-    return diff < 2;
-  };
+    setLoading(true);
 
-  // 🔹 Infinite scroll handler
-  const handleScroll = useCallback(
-    async (e: React.UIEvent<HTMLDivElement>) => {
-      const { scrollTop, scrollHeight, clientHeight } =
-        e.currentTarget;
-
-      if (
-        scrollHeight - scrollTop < clientHeight + 80 &&
-        hasMore &&
-        !loading
-      ) {
-        await onLoadMore();
+    const res = await axios.get(
+      `${api}/api/chats?page=${pageNum}&limit=${LIMIT}`,
+      {
+        headers: {
+          authorization: localStorage.getItem("token"),
+        },
       }
-    },
-    [hasMore, loading, onLoadMore]
-  );
+    );
 
-  // 🔹 Edit
-  const openEdit = (chat: any) => {
-    setEditingChat(chat);
-    setEditTitle(chat.title);
+    const incoming = res.data.chats;
+
+    setChats((prev) => {
+      const map = new Map(prev.map((c) => [c._id, c]));
+      incoming.forEach((c: any) => map.set(c._id, c));
+      return Array.from(map.values());
+    });
+
+    
+
+    setHasMore(res.data.hasMore);
+    setPage(pageNum);
+    setLoading(false);
   };
 
+  /* ===================== INITIAL LOAD ===================== */
+  useEffect(() => {
+    fetchChats(1);
+  }, []);
+
+
+
+  /* ===================== SCROLL HANDLER ===================== */
+  const handleScroll = () => {
+    const el = scrollRef.current;
+    if (!el || loading || !hasMore) return;
+
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 5) {
+      fetchChats(page + 1);
+    }
+  };
+
+  /* ===================== EDIT CHAT ===================== */
   const handleSaveEdit = async () => {
-    if (!editTitle.trim()) return;
+    setIsEditLoading(true);
 
-    try {
-      setIsUpdating(true);
-      const res = await axios.put(
-        `${api}/api/chats/${editingChat._id}`,
-        { title: editTitle.trim() },
-        {
-          headers: {
-            authorization: localStorage.getItem("token"),
-          },
-        }
-      );
+    const res = await axios.put(
+      `${api}/api/chats/${editingChat._id}`,
+      { title: editTitle },
+      {
+        headers: {
+          authorization: localStorage.getItem("token"),
+        },
+      }
+    );
 
-      onUpdateChat(res.data);
-      setEditingChat(null);
-    } catch (err) {
-      console.error("Update failed", err);
-    } finally {
-      setIsUpdating(false);
-    }
+    setChats((prev) =>
+      prev.map((c) => (c._id === res.data._id ? res.data : c))
+    );
+
+    setIsEditLoading(false);
+    setEditingChat(null);
   };
 
-  // 🔹 Delete
+  /* ===================== DELETE CHAT ===================== */
   const handleDelete = async () => {
-    try {
-      setIsDeleting(true);
-      await axios.delete(
-        `${api}/api/chats/${deletingChat._id}`,
-        {
-          headers: {
-            authorization: localStorage.getItem("token"),
-          },
-        }
-      );
+    setIsDeleting(true);
+    await axios.delete(`${api}/api/chats/${deletingChat._id}`, {
+      headers: {
+        authorization: localStorage.getItem("token"),
+      },
+    });
 
-      onDeleteChat(deletingChat._id);
-      setDeletingChat(null);
-    } catch (err) {
-      console.error("Delete failed", err);
-    } finally {
-      setIsDeleting(false);
-    }
+    setChats((prev) => prev.filter((c) => c._id !== deletingChat._id));
+
+    setIsDeleting(false);
+    setDeletingChat(null);
   };
+
+  /* ===================== SKELETON ===================== */
+  const ChatSkeleton = () => (
+    <div
+      style={{
+        height: 32,
+        borderRadius: 8,
+        background: "#e5e7eb",
+        marginBottom: 6,
+      }}
+    />
+  );
 
   return (
-    <aside className="w-full md:w-72 h-screen border-r bg-muted/30">
-      <Card className="h-full rounded-none border-0 flex flex-col">
-        {/* Header */}
-        <CardHeader className="border-b bg-gradient-to-r from-primary/10 via-background to-background">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg font-semibold">
-              Chats
-            </CardTitle>
-            <Button
-              size="icon"
-              variant="secondary"
-              onClick={onNewChat}
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
-        </CardHeader>
+    <aside
+      style={{
+        width: 280,
+        height: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        borderRight: "1px solid #e5e7eb",
+        background: "#fafafa",
+      }}
+    >
+      {/* HEADER */}
+      <div
+        style={{
+          padding: 12,
+          borderBottom: "1px solid #e5e7eb",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <strong>Chats</strong>
+        <button
+          onClick={onCreateNewChat}
+          style={{
+            padding: 4,
+            borderRadius: 6,
+            border: "none",
+            background: "#e5e7eb",
+            cursor: "pointer",
+          }}
+        >
+          <Plus size={16} />
+        </button>
+      </div>
 
-        {/* Content */}
-        <CardContent className="flex-1 flex flex-col p-3 pr-0">
-          {/* Search */}
-          <div className="mb-3 pr-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search chats..."
-                value={searchQuery}
-                onChange={(e) =>
-                  setSearchQuery(e.target.value)
-                }
-                className="pl-9"
-              />
-            </div>
-          </div>
-
-          {/* Chat list */}
+      {/* CHAT LIST */}
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          padding: "8px 6px",
+        }}
+      >
+        {chats.map((chat) => (
           <div
-            className="flex-1 overflow-y-auto space-y-2 pr-3"
-            onScroll={handleScroll}
+            key={chat._id}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              marginBottom: 6,
+            }}
           >
-            {filteredChats.map((chat) => (
-              <div
-                key={chat._id}
-                className="flex items-center gap-2 group"
-              >
-                <button
-                  onClick={() => onSelect(chat)}
-                  className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium truncate transition-all text-left
-                    ${
-                      activeChat?._id === chat._id
-                        ? "bg-primary text-primary-foreground shadow-sm"
-                        : isRecentChat(chat)
-                        ? "bg-background hover:bg-muted"
-                        : "bg-muted/60 hover:bg-muted text-muted-foreground"
-                    }`}
-                >
-                  {chat.title}
-                </button>
+            <button
+              onClick={() => onSelect(chat)}
+              style={{
+                flex: 1,
+                padding: "6px 10px",
+                fontSize: 13,
+                borderRadius: 8,
+                border: "none",
+                textAlign: "left",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                background:
+                  activeChat?._id === chat._id
+                    ? "linear-gradient(135deg, #2563eb, #1e40af)"
+                    : "#f1f5f9",
+                color: activeChat?._id === chat._id ? "#fff" : "#111827",
+                cursor: "pointer",
+              }}
+            >
+              {chat.title}
+            </button>
 
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition">
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => openEdit(chat)}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="text-destructive"
-                    onClick={() => setDeletingChat(chat)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
+            <button
+              onClick={() => {
+                setEditingChat(chat);
+                setEditTitle(chat.title);
+              }}
+              style={{
+                padding: 4,
+                borderRadius: 6,
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                color: "#6b7280",
+              }}
+            >
+              <Edit size={13} />
+            </button>
 
-            {/* Load more skeleton */}
-            {hasMore && (
-              <div className="py-3">
-                <Skeleton className="h-10 w-full rounded-lg" />
-              </div>
-            )}
+            <button
+              onClick={() => setDeletingChat(chat)}
+              style={{
+                padding: 4,
+                borderRadius: 6,
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                color: "#ef4444",
+              }}
+            >
+              <Trash2 size={13} />
+            </button>
           </div>
-        </CardContent>
-      </Card>
+        ))}
 
-      {/* ✏️ Edit Modal */}
-      <Dialog open={!!editingChat} onOpenChange={() => setEditingChat(null)}>
-        <DialogContent className="sm:max-w-md rounded-xl">
+        {loading &&
+          Array.from({ length: 4 }).map((_, i) => <ChatSkeleton key={i} />)}
+
+        {!hasMore && chats.length > 0 && (
+          <div
+            style={{
+              textAlign: "center",
+              padding: "12px 0",
+              fontSize: 12,
+              color: "#6b7280",
+            }}
+          >
+            You've reached the end 👋
+          </div>
+        )}
+      </div>
+
+      {/* FOOTER */}
+      <div style={{ padding: 8, borderTop: "1px solid #e5e7eb" }}>
+        <button
+          onClick={() => setShowAccount(true)}
+          style={{
+            padding: 6,
+            borderRadius: 6,
+            border: "none",
+            background: "#e5e7eb",
+            cursor: "pointer",
+          }}
+        >
+          <User size={16} />
+        </button>
+      </div>
+
+      {/* ACCOUNT MODAL */}
+      <Dialog open={showAccount} onOpenChange={setShowAccount}>
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit chat title</DialogTitle>
+            <DialogTitle>Account Details</DialogTitle>
           </DialogHeader>
+          <DialogDescription className="mb-4">
+           Name: {userDetails?.name} Email:  {userDetails?.email}
+            </DialogDescription>
+          <Button
+            variant="destructive"
+            onClick={() => {
+              localStorage.removeItem("token");
+              window.location.href = "/login";
+            }}
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Logout
+          </Button>
+        </DialogContent>
+      </Dialog>
 
-          <Label>Title</Label>
+      {/* EDIT MODAL */}
+      <Dialog open={!!editingChat} onOpenChange={() => setEditingChat(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit chat</DialogTitle>
+          </DialogHeader>
+          <Label>{editingChat?.title}</Label>
           <Input
             value={editTitle}
             onChange={(e) => setEditTitle(e.target.value)}
-            disabled={isUpdating}
           />
-
+          <DialogDescription className="mb-4">
+            Update the title for this chat.
+          </DialogDescription>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setEditingChat(null)}
-              disabled={isUpdating}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSaveEdit}
-              disabled={isUpdating}
-            >
-              {isUpdating && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              Save
+            <Button onClick={handleSaveEdit}>
+              {isEditLoading ? <Spinner /> : "Save"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* 🗑️ Delete Modal */}
+      {/* DELETE MODAL */}
       <Dialog
         open={!!deletingChat}
         onOpenChange={() => setDeletingChat(null)}
       >
-        <DialogContent className="sm:max-w-md rounded-xl">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete chat</DialogTitle>
+            <DialogTitle>Delete chat: {deletingChat?.title}</DialogTitle>
           </DialogHeader>
-
-          <p className="text-sm text-muted-foreground">
-            Delete{" "}
-            <span className="font-medium text-foreground">
-              “{deletingChat?.title}”
-            </span>
-            ? This cannot be undone.
-          </p>
-
+          <DialogDescription className="mb-4">
+            This action cannot be undone. This will permanently delete this
+            chat and all its messages.
+          </DialogDescription>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDeletingChat(null)}
-              disabled={isDeleting}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={isDeleting}
-            >
-              {isDeleting && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              Delete
+            <Button variant="destructive" onClick={handleDelete}>
+              {isDeleting ? <Spinner /> : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>

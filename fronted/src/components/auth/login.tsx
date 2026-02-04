@@ -54,6 +54,7 @@ const Login: React.FC = () => {
       setEmail("")
       setPassword("")
       localStorage.setItem("token", res.data.token)
+      localStorage.setItem("user", JSON.stringify(res.data.user))
 
       toast.success("Login successful", { position: "top-center" })
       navigate("/")
