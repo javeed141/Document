@@ -57,7 +57,7 @@ console.log(res)
       localStorage.setItem("user", JSON.stringify(res.data.user))
 
       toast.success("Login successful", { position: "top-center" })
-      navigate("/")
+      navigate("/chat-page")
     } catch (err: any) {
       const message =
         err.response?.data?.message || "Login failed"

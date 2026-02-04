@@ -3,6 +3,7 @@ import Login from "./components/auth/login";
 import Register from "./components/auth/register";
 import { Toaster } from "sonner";
 import ChatPage from "./pages/ChatPage";
+import Home from "./components/auth/Home";
 
 
 const App: React.FC = () => {
@@ -10,8 +11,9 @@ const App: React.FC = () => {
     <BrowserRouter>
         <Toaster richColors position="top-right" />
       <Routes>
+        <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/" element={<ChatPage />} />
+        <Route path="/chat-page" element={<ChatPage />} />
         <Route path="/register" element={<Register />} />
 
       </Routes>
