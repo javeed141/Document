@@ -10,6 +10,7 @@ import MessageInput from "@/components/MessageInput";
 import { Button } from "@/components/ui/button";
 import { Moon, Sun, Menu, X } from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
+import { useNavigate } from "react-router-dom";
 
 // Types for better type safety
 interface Chat {
@@ -27,6 +28,7 @@ export default function ChatPage() {
   // Chat state
   const [activeChat, setActiveChat] = useState<Chat | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [newChat, setNewChat] = useState<Chat | null>(null); // Track newly created chat
   
   // UI state
   const [loading, setLoading] = useState(false);
@@ -35,6 +37,14 @@ export default function ChatPage() {
   const [isRestoring, setIsRestoring] = useState(true);
 
   const { theme, toggleTheme } = useTheme();
+const navigate=useNavigate()
+
+  useEffect(()=>{
+    const token=localStorage.getItem("token")
+    if(!token) {
+      navigate("/login")
+    } 
+  },[])
 
   /* ===================== RESTORE ACTIVE CHAT ON PAGE LOAD ===================== */
   useEffect(() => {
@@ -58,7 +68,7 @@ export default function ChatPage() {
           setActiveChat(chat);
           setMessages(res.data.messages || []);
         } catch (error: any) {
-          handleApiError(error, "restore");
+          // handleApiError(error, "restore");
         }
       }
 
@@ -69,30 +79,30 @@ export default function ChatPage() {
   }, []);
 
   /* ===================== ERROR HANDLER ===================== */
-  const handleApiError = (error: any, context: string) => {
-    const status = error.response?.status;
+  // const handleApiError = (error: any, context: string) => {
+  //   const status = error.response?.status;
 
-    if (status === 401) {
-      toast.error("Session expired. Please log in again.");
-      localStorage.clear();
-      window.location.href = "/login";
-    } else if (status === 404) {
-      if (context === "restore" || context === "load") {
-        localStorage.removeItem("activeChatId");
-        setActiveChat(null);
-        setMessages([]);
-        toast.error("Chat not found.");
-      }
-    } else {
-      const errorMessages: Record<string, string> = {
-        restore: "Could not restore previous chat",
-        load: "Failed to load chat",
-        create: "Failed to create new chat",
-        send: "Failed to send message",
-      };
-      toast.error(errorMessages[context] || "Something went wrong");
-    }
-  };
+  //   if (status === 401) {
+  //     toast.error("Session expired. Please log in again.");
+  //     localStorage.clear();
+  //     window.location.href = "/login";
+  //   } else if (status === 404) {
+  //     if (context === "restore" || context === "load") {
+  //       localStorage.removeItem("activeChatId");
+  //       setActiveChat(null);
+  //       setMessages([]);
+  //       toast.error("Chat not found.");
+  //     }
+  //   } else {
+  //     const errorMessages: Record<string, string> = {
+  //       restore: "Could not restore previous chat",
+  //       load: "Failed to load chat",
+  //       create: "Failed to create new chat",
+  //       send: "Failed to send message",
+  //     };
+  //     toast.error(errorMessages[context] || "Something went wrong");
+  //   }
+  // };
 
   /* ===================== LOAD CHAT ===================== */
   const loadChat = async (chat: Chat) => {
@@ -110,7 +120,7 @@ export default function ChatPage() {
 
       setMessages(res.data.messages || []);
     } catch (error: any) {
-      handleApiError(error, "load");
+      // handleApiError(error, "load");
     } finally {
       setLoading(false);
     }
@@ -133,10 +143,17 @@ export default function ChatPage() {
         { headers: { authorization: token } }
       );
 
-      loadChat(res.data);
+      const createdChat = res.data;
+      
+      // Set as new chat to trigger sidebar update
+      setNewChat(createdChat);
+      
+      // Load the chat
+      loadChat(createdChat);
+      
       toast.success("New chat created");
     } catch (error: any) {
-      handleApiError(error, "create");
+      // handleApiError(error, "create");
     }
   };
 
@@ -168,7 +185,7 @@ export default function ChatPage() {
           .concat(res.data)
       );
     } catch (error: any) {
-      handleApiError(error, "send");
+      // handleApiError(error, "send");
       // Remove failed message
       setMessages((prev) => prev.filter((m) => m._id !== userMessage._id));
     } finally {
@@ -213,13 +230,14 @@ export default function ChatPage() {
           activeChat={activeChat}
           onSelect={loadChat}
           onCreateNewChat={handleCreateNewChat}
+          newChat={newChat} // Pass the new chat
         />
       </div>
 
       {/* Main Content */}
       <div className="flex flex-col flex-1 min-w-0">
         {!activeChat ? (
-          <EmptyState onNewChat={handleCreateNewChat} />
+          <EmptyState  />
         ) : (
           <>
             {/* Header */}

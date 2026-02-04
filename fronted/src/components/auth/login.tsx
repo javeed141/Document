@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button"
 import { api } from "@/api/api";
 import {
@@ -131,7 +131,15 @@ console.log(res)
               {submit ? <Spinner /> : "Login"}
             </Button>
           </form>
-      </CardContent>
+ <p className="mt-4 text-center text-sm text-muted-foreground">
+    New user?{" "}
+    <Link
+      to="/register"
+      className="font-medium text-primary hover:underline"
+    >
+      Register
+    </Link>
+  </p>      </CardContent>
     </Card>
   </div>
 );

@@ -147,7 +147,7 @@ const Register: React.FC = () => {
   <p className="text-sm text-center text-muted-foreground">
     Already have an account?{" "}
     <Link
-      to="/"
+      to="/login"
       className="text-primary underline-offset-4 hover:underline"
     >
       Login
