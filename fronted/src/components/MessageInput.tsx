@@ -121,7 +121,7 @@ import { toast } from "sonner";
 
 // Define what props this component accepts
 interface MessageInputProps {
-  chatId: string;
+  chatId?: string;
   onSendMessage: (content: string) => Promise<void>;
   disabled?: boolean;
 }

@@ -4,6 +4,7 @@ import Register from "./components/auth/register";
 import { Toaster } from "sonner";
 import ChatPage from "./pages/ChatPage";
 import Home from "./components/auth/Home";
+import NotFound from "./pages/NotFound";
 
 
 const App: React.FC = () => {
@@ -15,6 +16,7 @@ const App: React.FC = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/chat-page" element={<ChatPage />} />
         <Route path="/register" element={<Register />} />
+        <Route path="*" element={<NotFound />} />
 
       </Routes>
     </BrowserRouter>

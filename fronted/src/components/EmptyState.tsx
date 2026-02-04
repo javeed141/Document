@@ -1,4 +1,3 @@
-import { Button } from "@/components/ui/button";
 import { MessageSquare, Sparkles, Zap, Lightbulb } from "lucide-react";
 
 interface EmptyStateProps {
