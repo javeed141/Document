@@ -452,111 +452,133 @@ export default function ChatPage() {
   };
 
   /* ===================== SEND MESSAGE ===================== */
-  const handleSendMessage = async (content: string) => {
-    // Don't send if empty or already responding
-    if (!content.trim() || isResponding) return;
+ const handleSendMessage = async (content: string) => {
+  if (!content.trim() || isResponding) return;
 
-    // MUST have an active chat to send message
-    if (!activeChat) {
-      setIsCreatingChat(true)
+  const token = localStorage.getItem("token");
 
-      const token = localStorage.getItem("token");
-      // Generate a timestamp-based title
+  if (!token) {
+    toast.error("Please login again");
+    return;
+  }
 
-      const titleRes = await axios.post(
-        `${api}/api/chats/generate-title`,
-        { text: content },
-        { headers: { authorization: token } }
-      );
+  /* =========================
+     NO ACTIVE CHAT → CREATE FLOW
+  ========================== */
+  if (!activeChat) {
+    setIsCreatingChat(true);
 
-      const smartTitle = titleRes?.data?.title;
+    try {
+      // ---------- Generate title ----------
+      let smartTitle = "New Chat";
 
+      try {
+        const titleRes = await axios.post(
+          `${api}/api/chats/generate-title`,
+          { text: content },
+          { headers: { authorization: token } }
+        );
 
-      // Create chat on server
-      const res = await axios.post(
+        smartTitle = titleRes?.data?.title || "New Chat";
+      } catch (err) {
+        console.error("Title generation failed:", err);
+        toast.error("Title generation failed — using default");
+      }
+
+      // ---------- Create chat ----------
+      const chatRes = await axios.post(
         `${api}/api/chats`,
         { title: smartTitle },
         { headers: { authorization: token } }
       );
 
-      const createdChat = res.data;
-
-      // Pass to sidebar so it can add to list
+      const createdChat = chatRes.data;
       setNewChat(createdChat);
-      setActiveChat(createdChat)
-      console.log("content: ", content)
-      type Message = {
-        _id: string;
-        role: "user" | "assistant";
-        content: string;
-      };
+      setActiveChat(createdChat);
+
+      // ---------- Temp message ----------
       const userMessage: Message = {
         _id: `temp-${Date.now()}`,
         role: "user",
         content: content.trim(),
       };
 
+      setMessages((prev) => [...prev, userMessage]);
+      setIsResponding(true);
 
-      setMessages((prev) => [...prev, userMessage])
-      setIsResponding(true)
-      setIsCreatingChat(false)
-      const res1 = await axios.post(
+      // ---------- Send first message ----------
+      const msgRes = await axios.post(
         `${api}/api/chats/${createdChat._id}/messages`,
         { content: content.trim() },
         { headers: { authorization: token } }
       );
 
-      // Replace temp message + add AI response
       setMessages((prev) =>
         prev
           .map((m) => (m._id === userMessage._id ? userMessage : m))
-          .concat(res1.data)
-      );
-      setIsResponding(false)
-      setIsCreatingChat(false)
-
-      return;
-      // return;
-    }
-
-    // Create temporary user message
-    const userMessage: Message = {
-      _id: `temp-${Date.now()}`,
-      role: "user",
-      content: content.trim(),
-    };
-
-
-    // Show user message immediately
-    setMessages((prev) => [...prev, userMessage]);
-    setIsResponding(true);
-
-    try {
-      const token = localStorage.getItem("token");
-
-      // Send to server
-      const res = await axios.post(
-        `${api}/api/chats/${activeChat._id}/messages`,
-        { content: content.trim() },
-        { headers: { authorization: token } }
+          .concat(msgRes.data)
       );
 
-      // Replace temp message + add AI response
-      setMessages((prev) =>
-        prev
-          .map((m) => (m._id === userMessage._id ? userMessage : m))
-          .concat(res.data)
-      );
     } catch (error: any) {
-      console.error("Failed to send message:", error);
-      toast.error(`Failed to send message:${error.message}`);
+      console.error("Create chat flow failed:", error);
 
-      // Remove the failed message
-      setMessages((prev) => prev.filter((m) => m._id !== userMessage._id));
+      toast.error(
+        error?.response?.data?.message ||
+        "Failed to create chat"
+      );
+
     } finally {
       setIsResponding(false);
+      setIsCreatingChat(false);
     }
+
+    return;
+  }
+
+  /* =========================
+     EXISTING CHAT FLOW
+  ========================== */
+
+  const userMessage: Message = {
+    _id: `temp-${Date.now()}`,
+    role: "user",
+    content: content.trim(),
   };
+
+  setMessages((prev) => [...prev, userMessage]);
+  setIsResponding(true);
+
+  try {
+    const res = await axios.post(
+      `${api}/api/chats/${activeChat._id}/messages`,
+      { content: content.trim() },
+      { headers: { authorization: token } }
+    );
+
+    setMessages((prev) =>
+      prev
+        .map((m) => (m._id === userMessage._id ? userMessage : m))
+        .concat(res.data)
+    );
+
+  } catch (error: any) {
+    console.error("Send message failed:", error);
+
+    toast.error(
+      error?.response?.data?.message ||
+      "Failed to send message"
+    );
+
+    // remove failed temp message
+    setMessages((prev) =>
+      prev.filter((m) => m._id !== userMessage._id)
+    );
+
+  } finally {
+    setIsResponding(false);
+  }
+};
+
 
   /* ===================== LOADING SCREEN ===================== */
   // Show loading while restoring previous chat
