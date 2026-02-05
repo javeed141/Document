@@ -2,10 +2,24 @@ const express = require("express");
 const Chat = require("../models/Chat");
 const Message = require("../models/Message");
 const authMiddleware = require("../middleware/authMiddleware");
-const { generateAIResponse } = require("../services/ai_service");
+const { generateAIResponse, generateChatTitle } = require("../services/ai_service");
 
 const router = express.Router();
 
+
+
+router.post("/generate-title",authMiddleware,async (req, res) => {
+  try {
+    const { text } = req.body;
+
+    const title = await generateChatTitle(text);
+
+    res.json({ title });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to generate title" });
+  }
+});
 /* CREATE CHAT */
 router.post("/", authMiddleware, async (req, res) => {
   try {

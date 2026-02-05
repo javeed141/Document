@@ -176,13 +176,12 @@ export default function MessageInput({
       await onSendMessage(trimmedText);
     } catch (error) {
       console.error("Failed to send:", error);
-      toast.error("Failed to send message");
-      
+      toast.error(`Failed to send message:${error instanceof Error ? error.message : "Unknown error"}`);
       // Restore text if failed
-      setText(trimmedText);
+      setText(text);
     } finally {
       setLoading(false);
-      
+      // setText(text)
       // Focus back on input
       textareaRef.current?.focus();
     }

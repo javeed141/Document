@@ -50,6 +50,27 @@ async function generateAIResponse(messages) {
   return result.response.text();
 }
 
+
+/**
+ * Generate short 3–4 word summary title from text
+ */
+async function generateChatTitle(text) {
+  const prompt = `
+Summarize the following text into a short chat title of ONLY 3 to 4 words.
+No punctuation. No quotes. Just words.
+
+Text:
+${text}
+`;
+
+  const result = await model.generateContent(prompt);
+
+  const title = result.response.text().trim();
+
+  return title;
+}
+
 module.exports = {
   generateAIResponse,
+  generateChatTitle
 };

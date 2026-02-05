@@ -1,10 +1,12 @@
-import { MessageSquare, Sparkles, Zap, Lightbulb } from "lucide-react";
+import { MessageSquare, Sparkles, Zap, Lightbulb, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface EmptyStateProps {
   onCreateNewChat?: () => void;
+  creatingChat:boolean;
 }
 
-export default function EmptyState({ onCreateNewChat }: EmptyStateProps) {
+export default function EmptyState({ onCreateNewChat ,creatingChat}: EmptyStateProps) {
   const suggestions = [
     {
       icon: <Sparkles className="h-5 w-5" />,
@@ -34,24 +36,35 @@ export default function EmptyState({ onCreateNewChat }: EmptyStateProps) {
           
           <div className="space-y-2">
             <h2 className="text-xl md:text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-              Start a Conversation
+              No Chat Selected
             </h2>
             <p className="text-xs md:text-base text-muted-foreground max-w-md mx-auto">
-              Type a message below or choose a suggestion
+              Create a new chat or select one from the sidebar to get started
             </p>
           </div>
+        </div>
+
+        {/* Create Chat Button */}
+        <div className="flex justify-center">
+          <Button
+            // onClick={onCreateNewChat}
+            size="lg"
+            className="gap-2 shadow-lg hover:shadow-xl transition-shadow"
+          >
+            <Plus className="h-5 w-5" />
+            <span>New Chat By Entering the text from Input Box</span>
+          </Button>
         </div>
 
         {/* Suggestion Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {suggestions.map((suggestion, index) => (
-            <button
+            <div
               key={index}
-              onClick={onCreateNewChat}
-              className="group p-3 md:p-4 bg-card hover:bg-accent border rounded-xl transition-all hover:shadow-md hover:-translate-y-0.5 text-left"
+              className="group p-3 md:p-4 bg-card border rounded-xl"
             >
               <div className="flex flex-col gap-2 md:gap-3">
-                <div className="w-9 h-9 md:w-10 md:h-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                <div className="w-9 h-9 md:w-10 md:h-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
                   {suggestion.icon}
                 </div>
                 <div>
@@ -59,7 +72,7 @@ export default function EmptyState({ onCreateNewChat }: EmptyStateProps) {
                   <p className="text-[10px] md:text-xs text-muted-foreground">{suggestion.description}</p>
                 </div>
               </div>
-            </button>
+            </div>
           ))}
         </div>
 
