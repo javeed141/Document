@@ -45,7 +45,12 @@ interface Chat {
   title: string;
   createdAt?: string;
 }
-
+interface Message {
+  _id: string;
+  role: "user" | "assistant";
+  content: string;
+  createdAt?: string;
+}
 type ChatSidebarProps = {
   activeChat: Chat | null;
   setActiveChat: (chat: Chat | null) => void;
@@ -55,6 +60,7 @@ type ChatSidebarProps = {
   newChat?: Chat | null;
   closeSidebar: () => void;
   creatingChat: boolean;
+  setMessages: (messages: Message[]) => void;
 };
 
 /* ===================== LOADING SKELETON ===================== */
@@ -75,7 +81,8 @@ export default function ChatSidebar({
   onChatDeleted,
   newChat,
   closeSidebar,
-  creatingChat
+  creatingChat,
+  setMessages
 }: ChatSidebarProps) {
   // ========== CHAT LIST STATE ==========
   const [chats, setChats] = useState<Chat[]>([]);
@@ -317,6 +324,7 @@ export default function ChatSidebar({
       setActiveChat(null)
       localStorage.removeItem("activeChatId")
       closeSidebar?.()
+      setMessages([])
       console.log("hai")
 
   }
@@ -667,7 +675,7 @@ export default function ChatSidebar({
             <Button
               onClick={() => {
                 setShowWelcome(false);
-                onCreateNewChat();
+                // onCreateNewChat();
               }}
               className="w-full"
               size="lg"

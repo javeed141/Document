@@ -211,101 +211,79 @@ export default function ChatPage() {
 
   /* ===================== SEND MESSAGE ===================== */
   const handleSendMessage = async (content: string) => {
-    if (!content.trim() || isResponding) return;
+  if (!content.trim() || isResponding) return;
 
-    const token = localStorage.getItem("token");
-    if (!token) {
-      toast.error("Please login again");
-      return;
-    }
+  const token = localStorage.getItem("token");
+  if (!token) {
+    toast.error("Please login again");
+    return;
+  }
 
-    abortControllerRef.current = new AbortController();
+  abortControllerRef.current = new AbortController();
 
-    if (!activeChat) {
-      setIsCreatingChat(true);
+  if (!activeChat) {
+    setIsCreatingChat(true);
 
-      try {
-        let smartTitle = "New Chat";
-
-        try {
-          const titleRes = await axios.post(
-            `${api}/api/chats/generate-title`,
-            { text: content },
-            {
-              headers: { authorization: token },
-              signal: abortControllerRef.current.signal,
-            }
-          );
-          smartTitle = titleRes?.data?.title || "New Chat";
-          document.title = smartTitle;
-        } catch (err: any) {
-          if (err.name === "CanceledError") return;
-          toast.error("Title generation failed — using default");
+    try {
+      // 1️⃣ Create chat immediately with default title
+      const chatRes = await axios.post(
+        `${api}/api/chats`,
+        { title: "New Chat" },
+        {
+          headers: { authorization: token },
+          signal: abortControllerRef.current.signal,
         }
+      );
+      
+      const createdChat = chatRes.data;
+      setIsCreatingChat(false);
+      setNewChat(createdChat);
+      setActiveChat(createdChat);
+      localStorage.setItem("activeChatId", createdChat._id);
 
-        const chatRes = await axios.post(
-          `${api}/api/chats`,
+      // 2️⃣ Generate smart title in background (don't await)
+      axios.post(
+        `${api}/api/chats/generate-title`,
+        { text: content },
+        {
+          headers: { authorization: token },
+        }
+      )
+      .then((titleRes) => {
+        const smartTitle = titleRes?.data?.title || "New Chat";
+        
+        // 3️⃣ Update chat title
+        return axios.put(
+          `${api}/api/chats/${createdChat._id}`,
           { title: smartTitle },
           {
             headers: { authorization: token },
-            signal: abortControllerRef.current.signal,
           }
         );
-        setIsCreatingChat(false);
-        const createdChat = chatRes.data;
-        setNewChat(createdChat);
-        setActiveChat(createdChat);
-        localStorage.setItem("activeChatId", createdChat._id);
+      })
+      .then((updateRes) => {
+        // Update local state with new title
+        setActiveChat(updateRes.data);
+        setNewChat(updateRes.data);
+        document.title = updateRes.data.title;
+      })
+      .catch((err) => {
+        // Silent fail - chat already created with default title
+        console.warn("Title generation/update failed:", err);
+      });
 
-        const userMessage: Message = {
-          _id: `temp-${Date.now()}`,
-          role: "user",
-          content: content.trim(),
-        };
+      // 4️⃣ Send user message immediately (don't wait for title)
+      const userMessage: Message = {
+        _id: `temp-${Date.now()}`,
+        role: "user",
+        content: content.trim(),
+      };
 
-        setMessages((prev) => [...prev, userMessage]);
-        setIsResponding(true);
+      setMessages((prev) => [...prev, userMessage]);
+      setIsResponding(true);
 
-        const msgRes = await axios.post(
-          `${api}/api/chats/${createdChat._id}/messages`,
-          { content: content.trim() },
-          {
-            headers: { authorization: token },
-            signal: abortControllerRef.current.signal,
-          }
-        );
-
-        setMessages((prev) =>
-          prev
-            .map((m) => (m._id === userMessage._id ? userMessage : m))
-            .concat(msgRes.data)
-        );
-      } catch (error: any) {
-        if (error.name === "CanceledError" || error.code === "ERR_CANCELED") {
-          return;
-        }
-        toast.error(error?.response?.data?.message || "Failed to create chat");
-      } finally {
-        setIsResponding(false);
-        setIsCreatingChat(false);
-        abortControllerRef.current = null;
-      }
-
-      return;
-    }
-
-    const userMessage: Message = {
-      _id: `temp-${Date.now()}`,
-      role: "user",
-      content: content.trim(),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
-    setIsResponding(true);
-
-    try {
-      const res = await axios.post(
-        `${api}/api/chats/${activeChat._id}/messages`,
+      const msgRes = await axios.post(
+        `${api}/api/chats/${createdChat._id}/messages`,
         { content: content.trim() },
         {
           headers: { authorization: token },
@@ -316,19 +294,58 @@ export default function ChatPage() {
       setMessages((prev) =>
         prev
           .map((m) => (m._id === userMessage._id ? userMessage : m))
-          .concat(res.data)
+          .concat(msgRes.data)
       );
     } catch (error: any) {
       if (error.name === "CanceledError" || error.code === "ERR_CANCELED") {
         return;
       }
-      toast.error(error?.response?.data?.message || "Failed to send message");
-      setMessages((prev) => prev.filter((m) => m._id !== userMessage._id));
+      toast.error(error?.response?.data?.message || "Failed to create chat");
     } finally {
       setIsResponding(false);
+      setIsCreatingChat(false);
       abortControllerRef.current = null;
     }
+
+    return;
+  }
+
+  // Existing chat flow remains the same
+  const userMessage: Message = {
+    _id: `temp-${Date.now()}`,
+    role: "user",
+    content: content.trim(),
   };
+
+  setMessages((prev) => [...prev, userMessage]);
+  setIsResponding(true);
+
+  try {
+    const res = await axios.post(
+      `${api}/api/chats/${activeChat._id}/messages`,
+      { content: content.trim() },
+      {
+        headers: { authorization: token },
+        signal: abortControllerRef.current.signal,
+      }
+    );
+
+    setMessages((prev) =>
+      prev
+        .map((m) => (m._id === userMessage._id ? userMessage : m))
+        .concat(res.data)
+    );
+  } catch (error: any) {
+    if (error.name === "CanceledError" || error.code === "ERR_CANCELED") {
+      return;
+    }
+    toast.error(error?.response?.data?.message || "Failed to send message");
+    setMessages((prev) => prev.filter((m) => m._id !== userMessage._id));
+  } finally {
+    setIsResponding(false);
+    abortControllerRef.current = null;
+  }
+};
 
   if (isRestoring) {
     return (
@@ -364,6 +381,7 @@ export default function ChatPage() {
           newChat={newChat}
           closeSidebar={() => setSidebarOpen(false)}
           creatingChat={isCreatingChat}
+          setMessages={setMessages}
         />
       </div>
 
