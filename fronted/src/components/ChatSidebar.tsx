@@ -575,7 +575,7 @@ interface Chat {
 
 type ChatSidebarProps = {
   activeChat: Chat | null;
-  setActiveChat:Chat | null;
+  setActiveChat: (chat: Chat | null) => void;
   onSelect: (chat: Chat) => void;
   onCreateNewChat: () => void;
   onChatDeleted: (chatId: string) => void;

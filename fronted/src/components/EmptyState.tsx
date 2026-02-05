@@ -6,7 +6,7 @@ interface EmptyStateProps {
   creatingChat:boolean;
 }
 
-export default function EmptyState({ onCreateNewChat ,creatingChat}: EmptyStateProps) {
+export default function EmptyState({ onCreateNewChat }: EmptyStateProps) {
   const suggestions = [
     {
       icon: <Sparkles className="h-5 w-5" />,
@@ -47,7 +47,7 @@ export default function EmptyState({ onCreateNewChat ,creatingChat}: EmptyStateP
         {/* Create Chat Button */}
         <div className="flex justify-center">
           <Button
-            // onClick={onCreateNewChat}
+            onClick={onCreateNewChat}
             size="lg"
             className="gap-2 shadow-lg hover:shadow-xl transition-shadow"
           >

@@ -596,7 +596,7 @@ export default function ChatPage() {
       >
         <ChatSidebar
           activeChat={activeChat}
-          setActiveChat={setActiveChat}
+          setActiveChat={(chat) => setActiveChat(chat)}
           onSelect={loadChat}
           onCreateNewChat={handleCreateNewChat}
           onChatDeleted={handleChatDeleted}
