@@ -77,7 +77,7 @@ export default function ChatSidebar({
   activeChat,
   setActiveChat,
   onSelect,
-  onCreateNewChat,
+  // onCreateNewChat,
   onChatDeleted,
   newChat,
   closeSidebar,
