@@ -33,7 +33,7 @@ const Login: React.FC = () => {
   useEffect(() => {
     const token = localStorage.getItem("token")
     if (token) {
-      navigate("/")
+      navigate("/chat-page")
       return;
     }
   }, [])

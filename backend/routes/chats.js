@@ -30,17 +30,17 @@ router.post("/", authMiddleware, async (req, res) => {
     }
 
     // Check if chat with same title already exists for this user
-    const existingChat = await Chat.findOne({
-      userId: req.user.userId,
-      title: title,
-    });
+    // const existingChat = await Chat.findOne({
+    //   userId: req.user.userId,
+    //   // title: title,
+    // });
 
-    if (existingChat) {
-      return res.status(409).json({
-        message: "Chat with this title already exists",
-        chat: existingChat,
-      });
-    }
+    // if (existingChat) {
+    //   return res.status(409).json({
+    //     message: "Chat with this title already exists",
+    //     chat: existingChat,
+    //   });
+    // }
 
     // Create new chat
     const chat = await Chat.create({
